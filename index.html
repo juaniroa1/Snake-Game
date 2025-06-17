@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Snake Neon 🐍</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
@@ -17,8 +17,8 @@
     }
 
     h1 {
-      margin: 30px 0 10px;
-      font-size: 42px;
+      margin: 20px 0 10px;
+      font-size: 32px;
       color: #00ff99;
       text-shadow: 0 0 10px #00ff99;
     }
@@ -28,6 +28,11 @@
       border: 3px solid #00ff99;
       box-shadow: 0 0 15px #00ff99;
       border-radius: 12px;
+      width: 90vw;
+      height: 90vw;
+      max-width: 400px;
+      max-height: 400px;
+      touch-action: none;
     }
 
     p, label {
@@ -46,18 +51,13 @@
     button {
       margin-top: 15px;
       padding: 10px 20px;
-      font-size: 18px;
+      font-size: 16px;
       background: #00ff99;
       color: #000;
       border: none;
       border-radius: 12px;
       cursor: pointer;
       box-shadow: 0 0 10px #00ff99;
-      transition: background 0.3s;
-    }
-
-    button:hover {
-      background: #00e68a;
     }
 
     #gameOverOverlay, #menuOverlay {
@@ -65,24 +65,19 @@
       top: 80px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.85);
       color: white;
-      padding: 20px 40px;
+      padding: 20px 30px;
       border-radius: 12px;
-      box-shadow: 0 0 15px #f00;
-      font-size: 24px;
+      font-size: 20px;
       text-align: center;
       z-index: 10;
-    }
-
-    #menuOverlay {
-      box-shadow: 0 0 15px #00ff99;
     }
 
     #mobileControls {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 8px;
       margin-top: 10px;
     }
 
@@ -113,19 +108,19 @@
 <body>
   <h1>Snake Neon 🐍</h1>
 
-  <canvas id="game" width="400" height="400"></canvas>
+  <canvas id="game"></canvas>
 
   <p>Puntaje: <span id="score">0</span></p>
   <p id="record">Record: 0</p>
 
   <div id="mobileControls">
     <div class="control-row">
-      <button class="control-btn" onclick="setDirection('UP')">⬆️</button>
+      <button class="control-btn" ontouchstart="setDirection('UP')">⬆️</button>
     </div>
     <div class="control-row">
-      <button class="control-btn" onclick="setDirection('LEFT')">⬅️</button>
-      <button class="control-btn" onclick="setDirection('DOWN')">⬇️</button>
-      <button class="control-btn" onclick="setDirection('RIGHT')">➡️</button>
+      <button class="control-btn" ontouchstart="setDirection('LEFT')">⬅️</button>
+      <button class="control-btn" ontouchstart="setDirection('DOWN')">⬇️</button>
+      <button class="control-btn" ontouchstart="setDirection('RIGHT')">➡️</button>
     </div>
   </div>
 
@@ -145,8 +140,12 @@
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
-    const box = 20;
-    const rows = canvas.width / box;
+
+    let canvasSize = Math.min(window.innerWidth * 0.9, 400);
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const box = canvasSize / 20;
+
     const scoreDisplay = document.getElementById("score");
     const recordDisplay = document.getElementById("record");
     const overlay = document.getElementById("gameOverOverlay");
@@ -202,8 +201,8 @@
 
     function spawnFood() {
       return {
-        x: Math.floor(Math.random() * rows),
-        y: Math.floor(Math.random() * rows),
+        x: Math.floor(Math.random() * 20),
+        y: Math.floor(Math.random() * 20),
       };
     }
 
@@ -215,7 +214,7 @@
         ctx.shadowBlur = 8;
         ctx.shadowColor = "#00ff99";
         ctx.beginPath();
-        ctx.roundRect(segment.x * box, segment.y * box, box, box, 5);
+        ctx.roundRect(segment.x * box, segment.y * box, box, box, 4);
         ctx.fill();
         ctx.shadowBlur = 0;
       });
@@ -226,7 +225,7 @@
       ctx.shadowColor = isDoublePoints ? "#ffff00" : "#ff0033";
       ctx.fillStyle = isDoublePoints ? "#ffff00" : "#ff0033";
       ctx.beginPath();
-      ctx.arc(food.x * box + box / 2, food.y * box + box / 2, 8, 0, Math.PI * 2);
+      ctx.arc(food.x * box + box / 2, food.y * box + box / 2, box / 2.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
@@ -236,10 +235,10 @@
       if (direction === "LEFT") head.x--;
       if (direction === "RIGHT") head.x++;
 
-      if (head.x < 0) head.x = rows - 1;
-      if (head.x >= rows) head.x = 0;
-      if (head.y < 0) head.y = rows - 1;
-      if (head.y >= rows) head.y = 0;
+      if (head.x < 0) head.x = 19;
+      if (head.x >= 20) head.x = 0;
+      if (head.y < 0) head.y = 19;
+      if (head.y >= 20) head.y = 0;
 
       if (snake.some(seg => seg.x === head.x && seg.y === head.y)) {
         clearInterval(game);
@@ -281,28 +280,27 @@
     function drawEyes(head) {
       const cx = head.x * box;
       const cy = head.y * box;
-      const eyeRadius = 3;
-      const pupilRadius = 1.5;
+      const eyeRadius = box * 0.15;
+      const pupilRadius = eyeRadius / 2;
 
-      let eye1 = { x: 0, y: 0 };
-      let eye2 = { x: 0, y: 0 };
+      let eye1 = {}, eye2 = {};
 
       switch (direction) {
         case "UP":
-          eye1 = { x: cx + 5, y: cy + 5 };
-          eye2 = { x: cx + box - 5, y: cy + 5 };
+          eye1 = { x: cx + box * 0.25, y: cy + box * 0.2 };
+          eye2 = { x: cx + box * 0.75, y: cy + box * 0.2 };
           break;
         case "DOWN":
-          eye1 = { x: cx + 5, y: cy + box - 5 };
-          eye2 = { x: cx + box - 5, y: cy + box - 5 };
+          eye1 = { x: cx + box * 0.25, y: cy + box * 0.8 };
+          eye2 = { x: cx + box * 0.75, y: cy + box * 0.8 };
           break;
         case "LEFT":
-          eye1 = { x: cx + 5, y: cy + 5 };
-          eye2 = { x: cx + 5, y: cy + box - 5 };
+          eye1 = { x: cx + box * 0.2, y: cy + box * 0.25 };
+          eye2 = { x: cx + box * 0.2, y: cy + box * 0.75 };
           break;
         case "RIGHT":
-          eye1 = { x: cx + box - 5, y: cy + 5 };
-          eye2 = { x: cx + box - 5, y: cy + box - 5 };
+          eye1 = { x: cx + box * 0.8, y: cy + box * 0.25 };
+          eye2 = { x: cx + box * 0.8, y: cy + box * 0.75 };
           break;
       }
 
@@ -311,7 +309,6 @@
         ctx.beginPath();
         ctx.arc(eye.x, eye.y, eyeRadius, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.fillStyle = "#000";
         ctx.beginPath();
         ctx.arc(eye.x, eye.y, pupilRadius, 0, Math.PI * 2);
