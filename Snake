@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Snake Neon 🐍</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+    }
+
+    h1 {
+      margin: 30px 0 10px;
+      font-size: 42px;
+      color: #00ff99;
+      text-shadow: 0 0 10px #00ff99;
+    }
+
+    canvas {
+      background: rgba(0, 0, 0, 0.9);
+      border: 3px solid #00ff99;
+      box-shadow: 0 0 15px #00ff99;
+      border-radius: 12px;
+    }
+
+    p, label {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      text-align: center;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #00ff99;
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00ff99;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #00e68a;
+    }
+
+    #gameOverOverlay, #menuOverlay {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px #f00;
+      font-size: 24px;
+      text-align: center;
+      z-index: 10;
+    }
+
+    #menuOverlay {
+      box-shadow: 0 0 15px #00ff99;
+    }
+
+    #mobileControls {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .control-btn {
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      background: #00ff99;
+      color: black;
+      border-radius: 12px;
+      border: none;
+      box-shadow: 0 0 8px #00ff99;
+    }
+
+    #record {
+      font-size: 16px;
+      margin-top: 5px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h1>Snake Neon 🐍</h1>
+
+  <canvas id="game" width="400" height="400"></canvas>
+
+  <p>Puntaje: <span id="score">0</span></p>
+  <p id="record">Record: 0</p>
+
+  <div id="mobileControls">
+    <div class="control-row">
+      <button class="control-btn" onclick="setDirection('UP')">⬆️</button>
+    </div>
+    <div class="control-row">
+      <button class="control-btn" onclick="setDirection('LEFT')">⬅️</button>
+      <button class="control-btn" onclick="setDirection('DOWN')">⬇️</button>
+      <button class="control-btn" onclick="setDirection('RIGHT')">➡️</button>
+    </div>
+  </div>
+
+  <button id="restartBtn">🔁 Volver a empezar</button>
+
+  <div id="menuOverlay">
+    <label for="name">Ingresá tu nombre:</label><br>
+    <input id="name" placeholder="Ej: Juani"><br>
+    <button onclick="startGame()">🎮 Empezar</button>
+  </div>
+
+  <div id="gameOverOverlay" style="display:none;">
+    💀 GAME OVER 💀<br>
+    ¡Presioná "Volver a empezar"!
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const box = 20;
+    const rows = canvas.width / box;
+    const scoreDisplay = document.getElementById("score");
+    const recordDisplay = document.getElementById("record");
+    const overlay = document.getElementById("gameOverOverlay");
+    const menu = document.getElementById("menuOverlay");
+
+    let snake, direction, food, game, score;
+    let playerName = "";
+    let record = 0;
+    let isDoublePoints = false;
+    let currentSpeed = 100;
+
+    function setDirection(dir) {
+      if (
+        (dir === "UP" && direction !== "DOWN") ||
+        (dir === "DOWN" && direction !== "UP") ||
+        (dir === "LEFT" && direction !== "RIGHT") ||
+        (dir === "RIGHT" && direction !== "LEFT")
+      ) {
+        direction = dir;
+      }
+    }
+
+    function startGame() {
+      const nameInput = document.getElementById("name");
+      playerName = nameInput.value.trim() || "Anónimo";
+      menu.style.display = "none";
+      snake = [{ x: 10, y: 10 }];
+      direction = "RIGHT";
+      food = spawnFood();
+      score = 0;
+      currentSpeed = 100;
+      isDoublePoints = false;
+      overlay.style.display = "none";
+      scoreDisplay.textContent = score;
+      recordDisplay.textContent = `Record: ${record} (${playerName})`;
+      if (game) clearInterval(game);
+      game = setInterval(draw, currentSpeed);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      const key = e.key;
+      if (key === "ArrowUp") setDirection("UP");
+      if (key === "ArrowDown") setDirection("DOWN");
+      if (key === "ArrowLeft") setDirection("LEFT");
+      if (key === "ArrowRight") setDirection("RIGHT");
+    });
+
+    document.getElementById("restartBtn").addEventListener("click", () => {
+      menu.style.display = "none";
+      overlay.style.display = "none";
+      startGame();
+    });
+
+    function spawnFood() {
+      return {
+        x: Math.floor(Math.random() * rows),
+        y: Math.floor(Math.random() * rows),
+      };
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      snake.forEach((segment, i) => {
+        ctx.fillStyle = i === 0 ? "#00ff99" : "#00cc7a";
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = "#00ff99";
+        ctx.beginPath();
+        ctx.roundRect(segment.x * box, segment.y * box, box, box, 5);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      drawEyes(snake[0]);
+
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = isDoublePoints ? "#ffff00" : "#ff0033";
+      ctx.fillStyle = isDoublePoints ? "#ffff00" : "#ff0033";
+      ctx.beginPath();
+      ctx.arc(food.x * box + box / 2, food.y * box + box / 2, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      let head = { ...snake[0] };
+      if (direction === "UP") head.y--;
+      if (direction === "DOWN") head.y++;
+      if (direction === "LEFT") head.x--;
+      if (direction === "RIGHT") head.x++;
+
+      if (head.x < 0) head.x = rows - 1;
+      if (head.x >= rows) head.x = 0;
+      if (head.y < 0) head.y = rows - 1;
+      if (head.y >= rows) head.y = 0;
+
+      if (snake.some(seg => seg.x === head.x && seg.y === head.y)) {
+        clearInterval(game);
+        overlay.style.display = "block";
+        if (score > record) record = score;
+        recordDisplay.textContent = `Record: ${record} (${playerName})`;
+        return;
+      }
+
+      snake.unshift(head);
+
+      if (head.x === food.x && head.y === food.y) {
+        const earned = isDoublePoints ? 20 : 10;
+        score += earned;
+        scoreDisplay.textContent = score;
+        food = spawnFood();
+        if (score % 50 === 0) {
+          activateDoublePoints();
+          increaseSpeed();
+        }
+      } else {
+        snake.pop();
+      }
+    }
+
+    function activateDoublePoints() {
+      isDoublePoints = true;
+      setTimeout(() => {
+        isDoublePoints = false;
+      }, 5000);
+    }
+
+    function increaseSpeed() {
+      currentSpeed = Math.max(40, currentSpeed - 10);
+      clearInterval(game);
+      game = setInterval(draw, currentSpeed);
+    }
+
+    function drawEyes(head) {
+      const cx = head.x * box;
+      const cy = head.y * box;
+      const eyeRadius = 3;
+      const pupilRadius = 1.5;
+
+      let eye1 = { x: 0, y: 0 };
+      let eye2 = { x: 0, y: 0 };
+
+      switch (direction) {
+        case "UP":
+          eye1 = { x: cx + 5, y: cy + 5 };
+          eye2 = { x: cx + box - 5, y: cy + 5 };
+          break;
+        case "DOWN":
+          eye1 = { x: cx + 5, y: cy + box - 5 };
+          eye2 = { x: cx + box - 5, y: cy + box - 5 };
+          break;
+        case "LEFT":
+          eye1 = { x: cx + 5, y: cy + 5 };
+          eye2 = { x: cx + 5, y: cy + box - 5 };
+          break;
+        case "RIGHT":
+          eye1 = { x: cx + box - 5, y: cy + 5 };
+          eye2 = { x: cx + box - 5, y: cy + box - 5 };
+          break;
+      }
+
+      ctx.fillStyle = "#fff";
+      [eye1, eye2].forEach(eye => {
+        ctx.beginPath();
+        ctx.arc(eye.x, eye.y, eyeRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#000";
+        ctx.beginPath();
+        ctx.arc(eye.x, eye.y, pupilRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+      });
+    }
+
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+      this.beginPath();
+      this.moveTo(x + r, y);
+      this.lineTo(x + w - r, y);
+      this.quadraticCurveTo(x + w, y, x + w, y + r);
+      this.lineTo(x + w, y + h - r);
+      this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      this.lineTo(x + r, y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - r);
+      this.lineTo(x, y + r);
+      this.quadraticCurveTo(x, y, x + r, y);
+      this.closePath();
+    };
+  </script>
+</body>
+</html>
